@@ -1,0 +1,27 @@
+﻿@model PetModel
+
+<div class="modal-body">
+    <div class="form-group row">
+        <label class="col-md-6 col-form-label" for="select"><strong>Nome:</strong></label>
+        <label class="col-md-6 col-form-label" for="select">@Model.Nome</label>
+    </div>
+    <div class="form-group row">
+        <label class="col-md-6 col-form-label" for="select"><strong>Raca:</strong></label>
+        <label class="col-md-6 col-form-label" for="select">@Model.Raca</label>
+    </div>
+    <div class="form-group row">
+        <label class="col-md-6 col-form-label" for="select"><strong>Cor:</strong></label>
+        <label class="col-md-6 col-form-label" for="select">@Model.Cor</label>
+    </div>
+    <div class="form-group row">
+        <label class="col-md-6 col-form-label" for="select"><strong>Porte:</strong></label>
+        <label class="col-md-6 col-form-label" for="select">@Model.Porte</label>
+    </div>
+    <a class="btn btn-secondary btn-block" asp-controller="Pet" asp-action="Index" role="button">Voltar</a>
+</div>
+
+<script>
+    $("#closeApplicationUser").click(function () {
+        $("#modalUsers").dialog("close");
+    });
+</script>

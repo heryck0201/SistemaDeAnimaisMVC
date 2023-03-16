@@ -1,0 +1,49 @@
+﻿@model List<PetModel>
+@{
+    ViewData["Title"] = "Listagem de Pets";
+}
+
+<div class="text-center">
+
+    <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+        <a class="btn btn-primary" role="button" asp-controller="Pet" asp-action="CriarPet">Adicionar um novo Pet</a>
+    </div>
+    <br />
+
+    <h1 class="display-4">Listagem de Imóveis</h1>
+    <br />
+    <table class="table" id="table-contatos">
+        <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Nome</th>
+                <th scope="col">Raça</th>
+                <th scope="col">Cor</th>
+                <th scope="col">Porte</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model != null && Model.Any())
+            {
+                foreach (PetModel pet in Model)
+                {
+                    <tr>
+                        <th scope="row">@pet.Id</th>
+                        <td>@pet.Nome</td>
+                        <td>@pet.Raca</td>
+                        <td>@pet.Cor</td>
+                        <td>@pet.Porte</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a role="button" class="btn btn-primary" asp-route-id="@pet.Id" asp-controller="Pet" asp-action="Editar">Editar</a>
+                                <a role="button" class="btn btn-danger" asp-route-id="@pet.Id" asp-controller="Pet" asp-action="Detalhe">Detalhe</a>
+                                <a role="button" class="btn btn-success" asp-route-id="@pet.Id" asp-controller="Pet" asp-action="Apagar">Apagar</a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>
+

@@ -1,0 +1,12 @@
+﻿@model Int32
+
+@{
+    ViewData["Title"] = "Confirmarção para apagar o pet";
+}
+
+<div class="text-center">
+    <h3>Realmente deseja apagar o imóvel(@Model)?</h3>
+</div>
+
+<a class="btn btn-danger btn-block" asp-controller="Pet" asp-action="ApagarPost" asp-route-id="@Model" role="button">Confirmar exclusão</a>
+<a class="btn btn-secondary btn-block" asp-controller="Pet" asp-action="Index" role="button">Voltar</a>

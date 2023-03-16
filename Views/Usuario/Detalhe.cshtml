@@ -1,0 +1,28 @@
+﻿@model UsuarioModel
+
+<div class="modal-body">
+    <div class="form-group row">
+        <label class="col-md-6 col-form-label" for="select"><strong>Nome:</strong></label>
+        <label class="col-md-6 col-form-label" for="select">@Model.Nome</label>
+    </div>
+    <div class="form-group row">
+        <label class="col-md-6 col-form-label" for="select"><strong>Sobre Nome:</strong></label>
+        <label class="col-md-6 col-form-label" for="select">@Model.Sobrenome</label>
+    </div>
+    <div class="form-group row">
+        <label class="col-md-6 col-form-label" for="select"><strong>Email:</strong></label>
+        <label class="col-md-6 col-form-label" for="select">@Model.Email</label>
+    </div>
+    <div class="form-group row">
+        <label class="col-md-6 col-form-label" for="select"><strong>Meu Pet:</strong></label>
+        <label class="col-md-6 col-form-label" for="select">@Model.PetModelId</label>
+    </div>
+
+    <a class="btn btn-secondary btn-block" asp-controller="Usuario" asp-action="Index" role="button">Voltar</a>
+</div>
+
+<script>
+    $("#closeApplicationUser").click(function () {
+        $("#modalUsers").dialog("close");
+    });
+</script>
