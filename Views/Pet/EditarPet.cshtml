@@ -1,0 +1,54 @@
+﻿@*@model PetModel*@
+@{
+    ViewData["Title"] = "Cadastro de Pets";
+    List<UsuarioModel> userList = ViewBag.UserList;
+}
+@model SistemaDeAnimaisMVC.Models.PetModel
+<h2>Editar Pet</h2>
+
+<form id="formCriarPet" asp-controller="Pet" asp-action="EditarPet" method="post">
+    <input type="hidden" asp-for="Id">
+    <div class="form-group">
+        <label for="Nome">Diga o nome do pet </label>
+        <input type="text" asp-for="Nome" class="form-control" placeholder="O nome do pet">
+        @Html.ValidationMessageFor(x => x.Nome)
+    </div>
+
+    <div class="form-group">
+        <label for="raca">Raca</label>
+        <input type="text" asp-for="Raca" class="form-control" placeholder="Digite a raça do seu animalzinho">
+        @Html.ValidationMessageFor(x => x.Raca)
+    </div>
+
+    <div class="form-group">
+        <label for="cor">Cor</label>
+        <input type="text" asp-for="Cor" class="form-control" placeholder="Digite a cor do seu pet">
+        @Html.ValidationMessageFor(x => x.Cor)
+    </div>
+    <div class="form-group">
+        <label for="porte">Porte:</label>
+        <select class="form-control" id="porte" name="porte">
+            <option value="Pequeno">Pequeno</option>
+            <option value="Médio">Médio</option>
+            <option value="Grande">Grande</option>
+            @Html.ValidationMessageFor(x => x.Porte)
+        </select>
+    </div>
+    @*<div class="form-group">
+            <label for="usuarioId">Dono do Pet:</label>
+            <select class="form-control" id="usuarioId" name="UsuarioId" required>
+                <option value="">Selecione o dono do pet</option>
+                @foreach (var usuario in ViewBag.UserList)
+                {
+                    <option value="@usuario.Id" @(Model.UsuarioId= =usuario.Id ? "selected" : "" )>@usuario.Nome</option>
+                }
+            </select>
+            <span asp-validation-for="UsuarioId" class="text-danger"></span>
+        </div>*@
+    <div class="form-group">
+        <label for="cor">Dono do Pet</label>
+        <select name="UsuarioId" asp-for="UsuarioId" class="form-control input-group-lg" asp-items="@userList.Select(x=> new SelectListItem {Text = x.Nome,Value = x.Id.ToString()})"></select>
+        <span asp-validation-for="UsuarioId" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-primary">Salvar</button>
+</form>

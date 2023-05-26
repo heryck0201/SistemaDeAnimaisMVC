@@ -1,18 +1,28 @@
-﻿@model List<PetModel>
+﻿
 @{
     ViewData["Title"] = "Listagem de Pets";
 }
 
+@model List<SistemaDeAnimaisMVC.Models.PetModel>
 <div class="text-center">
 
     <div class="d-grid gap-2 d-md-flex justify-content-md-start">
         <a class="btn btn-primary" role="button" asp-controller="Pet" asp-action="CriarPet">Adicionar um novo Pet</a>
     </div>
+
     <br />
 
-    <h1 class="display-4">Listagem de Imóveis</h1>
+    <div class="alert alert-success" role="alert">
+        <button type="button" class="btn btn-danger btn-sm close-alert" arial-label="Close">X</button>
+    </div>
+
+    <div class="alert alert-danger" role="alert">
+        <button type="button" class="btn btn-danger btn-sm close-alert" arial-label="Close">X</button>
+    </div>
+
+    <h1 class="display-4">Listagem de Pet</h1>
     <br />
-    <table class="table" id="table-contatos">
+    <table class="table" id="table-contatosPet">
         <thead>
             <tr>
                 <th scope="col">#</th>
@@ -20,6 +30,7 @@
                 <th scope="col">Raça</th>
                 <th scope="col">Cor</th>
                 <th scope="col">Porte</th>
+                <th scope="col">Dono</th>
             </tr>
         </thead>
         <tbody>
@@ -33,10 +44,10 @@
                         <td>@pet.Raca</td>
                         <td>@pet.Cor</td>
                         <td>@pet.Porte</td>
+                        <td>@pet.Usuario.Nome</td>
                         <td>
                             <div class="btn-group" role="group">
-                                <a role="button" class="btn btn-primary" asp-route-id="@pet.Id" asp-controller="Pet" asp-action="Editar">Editar</a>
-                                <a role="button" class="btn btn-danger" asp-route-id="@pet.Id" asp-controller="Pet" asp-action="Detalhe">Detalhe</a>
+                                <a role="button" class="btn btn-primary" asp-route-id="@pet.Id" asp-controller="Pet" asp-action="EditarPet">Editar</a>
                                 <a role="button" class="btn btn-success" asp-route-id="@pet.Id" asp-controller="Pet" asp-action="Apagar">Apagar</a>
                             </div>
                         </td>
@@ -46,4 +57,3 @@
         </tbody>
     </table>
 </div>
-

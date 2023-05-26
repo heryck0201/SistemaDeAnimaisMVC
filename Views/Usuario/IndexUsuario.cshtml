@@ -6,12 +6,35 @@
 <div class="text-center">
 
     <div class="d-grid gap-2 d-md-flex justify-content-md-start">
-        <a class="btn btn-primary" role="button" asp-controller="Usuario" asp-action="CriarUsuario">Adicionar um novo usário</a>
+        <a class="btn btn-primary" role="button" asp-controller="Usuario" asp-action="CriarUsuario">Adicionar um novo usuário</a>
     </div>
+
     <br />
+
+    @if (TempData["SucessoMensagem"] != null)
+    {
+        <div class="alert alert-success" role="alert">
+            <button type="button" class="btn btn-danger btn-sm close-alert" arial-label="Close">X</button>
+            @TempData["SucessoMensagem"]
+        </div>
+    }
+
+
+    @if (TempData["MensagemError"] != null)
+    {
+        <div class="alert alert-danger" role="alert">
+            <button type="button" class="btn btn-danger btn-sm close-alert" arial-label="Close">X</button>
+            @TempData["MensagemError"]
+        </div>
+    }
+
+    <div class="alert alert-danger" role="alert">
+        <button type="button" class="btn btn-danger btn-sm close-alert" arial-label="Close">X</button>
+    </div>
 
     <h1 class="display-4">Listagem de Usuários</h1>
     <br />
+
     <table class="table" id="table-contatos">
         <thead>
             <tr>
@@ -20,6 +43,7 @@
                 <th scope="col">Sobre Nome</th>
                 <th scope="col">E-mail</th>
                 <th scope="col">Meu Pet</th>
+                <th scope="col">Ações</th>
             </tr>
         </thead>
         <tbody>
@@ -32,12 +56,10 @@
                         <td>@usuario.Nome</td>
                         <td>@usuario.Sobrenome</td>
                         <td>@usuario.Email</td>
-                        <td>@usuario.PetModelId</td>
+                        <td>@usuario.PetModel</td>
                         <td>
                             <div class="btn-group" role="group">
                                 <a role="button" class="btn btn-primary" asp-route-id="@usuario.Id" asp-controller="Usuario" asp-action="EditUsuarios">Editar</a>
-                                <a role="button" class="btn btn-danger" asp-route-id="@usuario.Id" asp-controller="Usuario" asp-action="Detalhe">Detalhe</a>
-                                <a role="button" class="btn btn-danger" asp-route-id="@usuario.Id" asp-controller="Usuario" asp-action="MeuPet">Meu Pet</a>
                                 <a role="button" class="btn btn-success" asp-route-id="@usuario.Id" asp-controller="Usuario" asp-action="Apagar">Apagar</a>
                             </div>
                         </td>

@@ -1,16 +1,20 @@
 ﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using SistemaDeAnimaisMVC.Models;
+using SistemaDeAnimaisMVC.Servico.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace SistemaDeAnimaisMVC.Controllers
 {
@@ -18,20 +22,22 @@ namespace SistemaDeAnimaisMVC.Controllers
     {
         private readonly ILogger<UsuarioController> _logger;
         private readonly string _uri = "https://localhost:44367/";
+        private readonly ISessaoLogin _sessaoLogin;
         public IHttpContextAccessor _httpContextAccessor { get; set; }
 
-        public UsuarioController(ILogger<UsuarioController> logger, IHttpContextAccessor httpContextAccessor)
+        public UsuarioController(ILogger<UsuarioController> logger, IHttpContextAccessor httpContextAccessor, ISessaoLogin sessaoLogin)
         {
             _logger = logger;
             _httpContextAccessor = httpContextAccessor;
-
+            _sessaoLogin = sessaoLogin;
         }
 
-        [Authorize]
         [AllowAnonymous]
+        //[Authorize]
         [HttpGet]
         public IActionResult IndexLogin()
         {
+
             if (User.Identity.IsAuthenticated)
             {
                 return RedirectToAction("IndexUsuario", "Usuario");
@@ -41,10 +47,17 @@ namespace SistemaDeAnimaisMVC.Controllers
                 return View();
         }
 
-        [Authorize]
+
+        [HttpGet]
+        public async Task<IActionResult> LoginSair()
+        {
+               await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return RedirectToAction("IndexLogin", "Usuario");
+        }
+
         [AllowAnonymous]
         [HttpGet]
-        public IActionResult LoginIn(LoginModel login)
+        public IActionResult LoginIn(LoginModel login, string returnUrl)
         {
             try
             {
@@ -80,7 +93,7 @@ namespace SistemaDeAnimaisMVC.Controllers
                     return BadRequest(baseResult);
                 }
 
-                var claims = new List<Claim>{
+               var claims = new List<Claim>{
                new Claim(ClaimTypes.Name, login.Email),
                new Claim("LoginAtual", login.Email),
                new Claim("access_token",baseResult.Token ),
@@ -98,8 +111,12 @@ namespace SistemaDeAnimaisMVC.Controllers
                 };
                 _httpContextAccessor.HttpContext.SignInAsync(claimPrincipal, propriedadesDeAutenticacao);
 
-                //return View("IndexUsuario");
-                return RedirectToAction("IndexUsuario");
+                if (!string.IsNullOrEmpty(returnUrl))
+                {
+                    return Redirect(returnUrl);
+                }
+
+                return Redirect("IndexUsuario");
 
             }
             catch (Exception ex)
@@ -112,14 +129,47 @@ namespace SistemaDeAnimaisMVC.Controllers
         [HttpGet]
         public IActionResult IndexUsuario()
         {
-            return View();
+            try
+            {
+                string token = User.FindFirstValue("access_token");
+                HttpClient client = new HttpClient();
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                client.DefaultRequestHeaders.Accept.Clear();
+                client.BaseAddress = new Uri(_uri);
+
+                var returnRequest = client.GetAsync("/api/Usuario/BuscarTodosUsuarios").GetAwaiter().GetResult();
+
+                if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.BadRequest))
+                {
+                    TempData["MensagemSucesso"] = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    return View();
+                }
+
+                if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.Unauthorized) ||
+                    returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.NotFound))
+                {
+                    TempData["MensagemSucesso"] = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    return View();
+                }
+
+                var returnContent = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                List<UsuarioModel> baseResult = JsonConvert.DeserializeObject<List<UsuarioModel>>(returnContent);
+
+                return View(baseResult);
+
+            }
+            catch (Exception ex)
+            {
+                TempData["MensagemSucesso"] = ex.Message;
+                return View();
+            }
         }
+
 
         [Authorize]
         [HttpGet]
         public IActionResult GetUsuario()
         {
-
             HttpClient client = new HttpClient();
             client.BaseAddress = new Uri(_uri);
 
@@ -144,347 +194,116 @@ namespace SistemaDeAnimaisMVC.Controllers
 
         [Authorize]
         [HttpGet]
-        public IActionResult CriarUsuario(string nome)
+        public IActionResult CriarUsuario(int id)
         {
-            if (nome == "")
+            try
             {
-                ViewBag.Error = "nome não informado";
-                return View(new UsuarioModel());
+                string token = User.FindFirstValue("access_token");
+                HttpClient client = new HttpClient();
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                client.DefaultRequestHeaders.Accept.Clear();
+                client.BaseAddress = new Uri(_uri);
+
+                var returnRequest = client.GetAsync($"/api/Usuario/{id}").GetAwaiter().GetResult();
+
+                if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.BadRequest))
+                {
+                    TempData["MensagemSucesso"] = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    return View();
+
+                }
+
+                if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.Unauthorized) ||
+                    returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.NotFound))
+                {
+                    TempData["MensagemSucesso"] = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    return View();
+
+                }
+
+                var returnContent = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                UsuarioModel baseResult = JsonConvert.DeserializeObject<UsuarioModel>(returnContent, new JsonSerializerSettings()
+                { Culture = System.Globalization.CultureInfo.CurrentCulture });
+
+                return View(baseResult);
             }
-
-            HttpClient client = new HttpClient();
-            client.BaseAddress = new Uri(_uri);
-
-            var returnRequest = client.GetAsync("/api/Usuario/BuscarId" + nome).GetAwaiter().GetResult();
-
-            if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.BadRequest))
+            catch (Exception ex)
             {
-                ViewBag.Error = "Erro na API";
-                return View(new UsuarioModel());
+                TempData["MensagemSucesso"] = ex.Message;
+                return View();
             }
-
-            if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.Unauthorized) ||
-                returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.NotFound))
-            {
-                ViewBag.Error = "Acesso não autorizado ou caminho não existe";
-                return View(new UsuarioModel());
-            }
-
-            var returnContent = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-            UsuarioModel baseResult = JsonConvert.DeserializeObject<UsuarioModel>(returnContent);
-
-            return View(baseResult);
         }
 
         [Authorize]
         [HttpPost]
         public IActionResult CriarUsuario(UsuarioModel usuarioModel)
         {
-            if (usuarioModel.Nome == "" || usuarioModel.Email == "" || usuarioModel.Nome == null || usuarioModel.Email == null
-                || usuarioModel.Id == null)
+            try
             {
-                return BadRequest(new ReturnLoginModel { Msg = "Nome e/ou Email", Status = true });
+
+                var serializerModelUsuario = JsonConvert.SerializeObject(usuarioModel);
+                string token = User.FindFirstValue("access_token");
+                HttpClient client = new HttpClient();
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                client.DefaultRequestHeaders.Accept.Clear();
+                client.BaseAddress = new Uri(_uri);
+
+                var stringContent = new StringContent(serializerModelUsuario, Encoding.UTF8, "application/json");
+                var returnRequest = client.PostAsync("/api/Usuario/CriarUsuario", stringContent).GetAwaiter().GetResult();
+
+
+
+                if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.BadRequest))
+                {
+                    TempData["MensagemSucesso"] = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    return View();
+                }
+
+                if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.Unauthorized) ||
+                    returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.NotFound))
+                {
+                    TempData["MensagemSucesso"] = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+
+                    return View();
+                }
+
+                //teste novo
+                if (ModelState.IsValid)
+                {
+                    //SucessoMensagem
+
+                    TempData["SucessoMensagem"] = "Contato cadastrado com sucesso";
+                    //return View("IndexUsuario");
+                    return View();
+                }
+
+                var returnContent = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                UsuarioModel baseResult = JsonConvert.DeserializeObject<UsuarioModel>(returnContent);
+
+                return Redirect("IndexUsuario");
             }
-            else
+            catch (Exception ex)
             {
-                try
-                {
-                    //instância do modelo de dados do usuario
-                    var serializerModelLogin = JsonConvert.SerializeObject(new
-                    {
-                        id = usuarioModel.Id,
-                        nome = usuarioModel.Nome,
-                        sobrenome = usuarioModel.Sobrenome,
-                        petModelId = usuarioModel.PetModelId,
-                        email = usuarioModel.Email,
-                    });
 
-                    HttpClient client = new HttpClient();
-                    client.BaseAddress = new Uri(_uri);
-
-                    var stringContent = new StringContent(serializerModelLogin, Encoding.UTF8, "application/json");
-                    var returnRequest = client.PostAsync("/api/Usuario/CriarUsuario", stringContent).GetAwaiter().GetResult();
-
-                    if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.BadRequest))
-                    {
-                        return BadRequest(new ReturnLoginModel { Msg = "Erro na API" });
-                    }
-
-                    if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.Unauthorized) ||
-                        returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.NotFound))
-                    {
-                        return BadRequest(new ReturnLoginModel { Msg = "Acesso não autorizado ou caminho não existe", Status = true });
-                    }
-
-                    var returnContent = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                    ReturnLoginModel baseResult = new ReturnLoginModel();
-                    try
-                    {
-                        baseResult = JsonConvert.DeserializeObject<ReturnLoginModel>(returnContent);
-                    }
-                    catch (Exception ex)
-                    {
-                        return BadRequest(new ReturnLoginModel { Msg = returnContent, Status = true });
-                    }
-
-                    if (!baseResult.Authenticated)
-                    {
-                        return BadRequest(baseResult);
-                    }
-
-                    return Redirect("IndexUsuario");
-                }
-                catch (Exception ex)
-                {
-                    return BadRequest(new ReturnLoginModel { Msg = ex.Message, Status = true });
-                }
+                TempData["MensagemError"] = $"Não foi possível cadastrar o contato:{ex}";
+                return View();
             }
         }
-
-        //[Authorize]
-        //[AllowAnonymous]
-        //[HttpGet]
-        //public IActionResult CriarUsuario()
-        //{
-        //    return View();
-        //}
-
-        //[Authorize]
-        //[AllowAnonymous]
-        //[HttpPost]
-        //public IActionResult Criar(UsuarioModel usuarioModel)
-        //{
-        //    try
-        //    {
-        //        var serializerModelImovel = JsonConvert.SerializeObject(usuarioModel);
-
-        //        HttpClient client = new HttpClient();
-        //        client.BaseAddress = new Uri("https://62a0e2547b9345bcbe416e45.mockapi.io");
-
-        //        var stringContent = new StringContent(serializerModelImovel, Encoding.UTF8, "application/json");
-        //        var returnRequest = client.PostAsync("/api/v1/Imoveis", stringContent).GetAwaiter().GetResult();
-
-        //        if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.BadRequest))
-        //        {
-        //            TempData["MensagemSucesso"] = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-        //            return View();
-        //        }
-
-        //        if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.Unauthorized) ||
-        //            returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.NotFound))
-        //        {
-        //            TempData["MensagemSucesso"] = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-        //            return View();
-        //        }
-
-        //        var returnContent = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-        //        UsuarioModel baseResult = JsonConvert.DeserializeObject<UsuarioModel>(returnContent);
-
-        //        return Redirect("IndexUsuario");
-        //    }
-        //    catch (Exception ex)
-        //    {
-
-        //        TempData["MensagemSucesso"] = ex.Message;
-        //        return View();
-        //    }
-
-        //}
-
+        
         [Authorize]
         [HttpGet]
-        public IActionResult EditUsuario(string nome)
-        {
-            if (nome == "")
-            {
-                ViewBag.Error = "nome não informado";
-                return View(new UsuarioModel());
-            }
-
-            HttpClient client = new HttpClient();
-            client.BaseAddress = new Uri(_uri);
-
-            var returnRequest = client.GetAsync("/api/Usuario" + nome).GetAwaiter().GetResult();
-
-            if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.BadRequest))
-            {
-                ViewBag.Error = "Erro na API";
-                return View(new UsuarioModel());
-            }
-
-            if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.Unauthorized) ||
-                returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.NotFound))
-            {
-                ViewBag.Error = "Acesso não autorizado ou caminho não existe";
-                return View(new UsuarioModel());
-            }
-
-            var returnContent = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-            UsuarioModel baseResult = JsonConvert.DeserializeObject<UsuarioModel>(returnContent);
-
-            return View(baseResult);
-
-        }
-
-        [Authorize]
-        [HttpPost]
-        public IActionResult EditUsuario(UsuarioModel usuarioModel)
-        {
-            if (usuarioModel.Nome == "" || usuarioModel.Email == "" || usuarioModel.Nome == null || usuarioModel.Email == null || usuarioModel.Id == null)
-            {
-                return BadRequest(new ReturnLoginModel { Msg = "Nome e/ou Email" });
-            }
-            else
-            {
-                try
-                {
-                    var serializerModelLogin = JsonConvert.SerializeObject(new
-                    {
-                        id = usuarioModel.Id,
-                        nome = usuarioModel.Nome,
-                        sobrenome = usuarioModel.Sobrenome,
-                        petModelId = usuarioModel.PetModelId,
-                        email = usuarioModel.Email,
-                    });
-
-                    HttpClient client = new HttpClient();
-                    client.BaseAddress = new Uri(_uri);
-
-                    var stringContent = new StringContent(serializerModelLogin, Encoding.UTF8, "application/json");
-                    var returnRequest = client.PutAsync("/api/Usuario/{AtualizarId}", stringContent).GetAwaiter().GetResult();
-
-                    if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.BadRequest))
-                    {
-                        return BadRequest(new ReturnLoginModel { Msg = "Erro na API" });
-                    }
-
-                    if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.Unauthorized) ||
-                        returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.NotFound))
-                    {
-                        return BadRequest(new ReturnLoginModel { Msg = "Acesso não autorizado ou caminho não existe", Status = false });
-                    }
-
-                    var returnContent = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                    ReturnLoginModel baseResult = new ReturnLoginModel();
-                    try
-                    {
-                        baseResult = JsonConvert.DeserializeObject<ReturnLoginModel>(returnContent);
-                    }
-                    catch (Exception ex)
-                    {
-                        return BadRequest(new ReturnLoginModel { Msg = returnContent, Status = false });
-                    }
-
-                    if (!baseResult.Authenticated)
-                    {
-                        return BadRequest(baseResult);
-                    }
-
-                    return Redirect("IndexUsuario");
-                }
-                catch (Exception ex)
-                {
-                    return BadRequest(new ReturnLoginModel { Msg = ex.Message, Status = false });
-                }
-            }
-        }
-
-        //[Authorize]
-        //[HttpGet]
-        //public IActionResult Detalhe(int id)
-        //{
-
-        //    try
-        //    {
-        //        HttpClient client = new HttpClient();
-        //        client.BaseAddress = new Uri(_uri);
-
-        //        var returnRequest = client.GetAsync("/api/Usuario/{id}" + id).GetAwaiter().GetResult();
-
-        //        if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.BadRequest))
-        //        {
-        //            TempData["MensagemSucesso"] = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-        //            return View();
-        //        }
-
-        //        if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.Unauthorized) ||
-        //            returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.NotFound))
-        //        {
-        //            TempData["MensagemSucesso"] = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-        //            return View();
-        //        }
-
-        //        var returnContent = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-        //        UsuarioModel baseResult = JsonConvert.DeserializeObject<UsuarioModel>(returnContent,
-        //                                  new JsonSerializerSettings()
-        //                                  { Culture = System.Globalization.CultureInfo.CurrentCulture });
-
-        //        return View(baseResult);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        TempData["MensagemSucesso"] = ex.Message;
-        //        return Redirect("Detalhe");
-        //    }
-        //}
-
-        //[Authorize]
-        //[HttpGet]
-        //public IActionResult MeuPet(int id)
-        //{
-
-        //    try
-        //    {
-        //        HttpClient client = new HttpClient();
-        //        client.BaseAddress = new Uri(_uri);
-
-        //        var returnRequest = client.GetAsync("/api/Usuario/{id}" + id).GetAwaiter().GetResult();
-
-        //        if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.BadRequest))
-        //        {
-        //            TempData["MensagemSucesso"] = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-        //            return View();
-        //        }
-
-        //        if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.Unauthorized) ||
-        //            returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.NotFound))
-        //        {
-        //            TempData["MensagemSucesso"] = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-        //            return View();
-        //        }
-
-        //        var returnContent = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-        //        PetModel baseResult = JsonConvert.DeserializeObject<PetModel>(returnContent,
-        //                                  new JsonSerializerSettings()
-        //                                  { Culture = System.Globalization.CultureInfo.CurrentCulture });
-
-        //        return View(baseResult);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        TempData["MensagemSucesso"] = ex.Message;
-        //        return Redirect("Detalhe");
-        //    }
-        //}
-
-        [Authorize]
-        [HttpGet]
-        public IActionResult Apagar(int id)
-        {
-
-            return View(id);
-        }
-
-        [Authorize]
-        [HttpGet]
-        public IActionResult ApagarPost(int id)
+        public IActionResult EditUsuarios(int id)
         {
             try
             {
+                string token = User.FindFirstValue("access_token");
                 HttpClient client = new HttpClient();
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                client.DefaultRequestHeaders.Accept.Clear();
                 client.BaseAddress = new Uri(_uri);
 
-                var returnRequest = client.DeleteAsync("/api/Usuario/{ApagarId}" + id).GetAwaiter().GetResult();
+                var returnRequest = client.GetAsync($"/api/Usuario/{id}").GetAwaiter().GetResult();
+
                 if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.BadRequest))
                 {
                     TempData["MensagemSucesso"] = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
@@ -499,17 +318,156 @@ namespace SistemaDeAnimaisMVC.Controllers
                 }
 
                 var returnContent = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                UsuarioModel baseResult = JsonConvert.DeserializeObject<UsuarioModel>
-                                          (returnContent, new JsonSerializerSettings() { Culture = System.Globalization.CultureInfo.CurrentCulture });
+                UsuarioModel baseResult = JsonConvert.DeserializeObject<UsuarioModel>(returnContent, new JsonSerializerSettings()
+                { Culture = System.Globalization.CultureInfo.CurrentCulture });
+
+                return View(baseResult);
+            }
+            catch (Exception ex)
+            {
+                TempData["MensagemSucesso"] = ex.Message;
+                return View();
+            }
+        }
+
+        [Authorize]
+        [HttpPost]
+        public IActionResult EditUsuarios(UsuarioModel usuarioModel, int id)
+        {
+            try
+            {
+                var serializerModel = JsonConvert.SerializeObject(usuarioModel);
+                string token = User.FindFirstValue("access_token");
+                HttpClient client = new HttpClient();
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                client.DefaultRequestHeaders.Accept.Clear();
+                client.BaseAddress = new Uri(_uri);
+
+                var stringContent = new StringContent(serializerModel, Encoding.UTF8, "application/json");
+                var returnRequest = client.PutAsync($"/api/Usuario/{id}", stringContent).GetAwaiter().GetResult();
+
+                if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.BadRequest))
+                {
+                    TempData["MensagemSucesso"] = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    return View();
+                }
+
+                if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.Unauthorized) ||
+                    returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.NotFound))
+                {
+                    TempData["MensagemSucesso"] = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    return View();
+                }
+
+                //teste novo
+                if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.BadRequest) && ModelState.IsValid)
+                {
+                    TempData["SucessoMensagem"] = "Contato cadastrado com sucesso";
+                    //return View("IndexUsuario");
+                    return View();
+                }
+
+                var returnContent = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                UsuarioModel baseResult = JsonConvert.DeserializeObject<UsuarioModel>(returnContent);
+
+                return Redirect("IndexUsuario");
+            }
+            catch (Exception ex)
+            {
+                TempData["MensagemError"] = $"Não foi possível cadastrar o contato:{ex}";
+                return View();
+            }
+        }
+
+
+        [Authorize]
+        [HttpGet]
+        public IActionResult Apagar(int id)
+        {
+            try
+            {
+                string token = User.FindFirstValue("access_token");
+                HttpClient client = new HttpClient();
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                client.DefaultRequestHeaders.Accept.Clear();
+                client.BaseAddress = new Uri(_uri);
+
+                var returnRequest = client.DeleteAsync($"api/Usuario/{id}").GetAwaiter().GetResult();
+
+                if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.BadRequest))
+                {
+                    TempData["MensagemSucesso"] = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    return View();
+                }
+
+                if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.Unauthorized) ||
+                returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.NotFound))
+                {
+                    TempData["MensagemSucesso"] = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    return View();
+                }
+
+                var returnContent = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                UsuarioModel baseResult = JsonConvert.DeserializeObject<UsuarioModel>(returnContent, new JsonSerializerSettings()
+                { Culture = System.Globalization.CultureInfo.CurrentCulture });
+
+                return View(baseResult);
+            }
+            catch (Exception ex)
+            {
+                TempData["MensagemSucesso"] = ex.Message;
+                return View();
+            }
+
+        }
+
+        [Authorize]
+        [HttpGet]
+        public IActionResult ApagarPost(int id)
+        {
+            try
+            {
+                string token = User.FindFirstValue("access_token");
+                HttpClient client = new HttpClient();
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                client.DefaultRequestHeaders.Accept.Clear();
+                client.BaseAddress = new Uri(_uri);
+
+                var returnRequest = client.GetAsync($"/api/Usuario/{id}").GetAwaiter().GetResult();
+                if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.BadRequest))
+                {
+                    TempData["MensagemSucesso"] = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    return View();
+                }
+
+                if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.Unauthorized) ||
+                    returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.NotFound))
+                {
+                    TempData["MensagemSucesso"] = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    return View();
+                }
+
+                //teste novo
+                if (returnRequest.StatusCode.Equals(System.Net.HttpStatusCode.BadRequest) && ModelState.IsValid)
+                {
+                    TempData["SucessoMensagem"] = "Contato apagado com sucesso";
+                    //return View("IndexUsuario");
+                    return View();
+                }
+
+                var returnContent = returnRequest.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                UsuarioModel baseResult = JsonConvert.DeserializeObject<UsuarioModel>(returnContent, new JsonSerializerSettings()
+                { Culture = System.Globalization.CultureInfo.CurrentCulture });
 
                 return View("IndexUsuario");
             }
             catch (Exception ex)
             {
-                TempData["MensagemSucesso"] = ex.Message;
-                return Redirect("Apagar");
+                TempData["MensagemError"] = $"Não foi possível cadastrar o contato:{ex}";
+                //return View();
+                //TempData["MensagemSucesso"] = ex.Message;
+                return Redirect("IndexUsuario");
             }
-
         }
     }
 }

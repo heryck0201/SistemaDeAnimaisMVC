@@ -9,7 +9,7 @@
 
 <form asp-controller="Usuario" asp-action="CriarUsuario" method="post">
     <div class="form-group">
-        <label for="tipoImovel">Nome</label>
+        <label for="Nome">Nome</label>
         <input type="text" asp-for="Nome" class="form-control" placeholder="Digite o nome">
         @Html.ValidationMessageFor(x => x.Nome)
     </div>
@@ -24,11 +24,6 @@
         <label for="Email">Email</label>
         <input type="text" asp-for="Email" class="form-control" placeholder="Digite E-mail">
         @Html.ValidationMessageFor(x => x.Email)
-    </div>
-    <div class="form-group">
-        <label for="PetModelId">Meu Pet</label>
-        <input type="text" asp-for="PetModelId" class="form-control" placeholder="Digite o nome do Pet">
-        @Html.ValidationMessageFor(x => x.PetModelId)
     </div>
 
     <button type="submit" class="btn btn-primary btn-block">Adicionar</button>

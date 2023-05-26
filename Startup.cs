@@ -6,7 +6,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-
+using SistemaDeAnimaisMVC.Servico;
+using SistemaDeAnimaisMVC.Servico.Interfaces;
 
 namespace SistemaDeAnimaisMVC
 {
@@ -28,18 +29,29 @@ namespace SistemaDeAnimaisMVC
                         options.LoginPath = "/Usuario/IndexLogin";
                     });
 
-            services.AddControllersWithViews();
+            
             services.Configure<CookiePolicyOptions>(options =>
             {
                 options.CheckConsentNeeded = context => true;
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
-            services.AddRazorPages()
-                .AddRazorRuntimeCompilation();
-
-            services.AddSession();
+          
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-            var app = services.BuildServiceProvider();
+
+            services.AddScoped<ISessaoLogin, SessaoLogin>();
+
+            //services.AddSession(o =>
+            //{
+            //    o.Cookie.HttpOnly = true;
+            //    o.Cookie.IsEssential = true;
+            //});
+
+
+            //var app = services.BuildServiceProvider();
+            services.AddSession();
+            services.AddRazorPages();
+            services.AddControllersWithViews()
+                .AddRazorRuntimeCompilation();
 
             // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
 
@@ -66,22 +78,23 @@ namespace SistemaDeAnimaisMVC
                 app.UseExceptionHandler("/Usuario/Error");
             }
 
-            app.UseCookiePolicy();
+            
             app.UseSession();
-            app.UseHttpsRedirection();
+
+            /*app.UseHttpsRedirection();*///coloquei para ver se parava o erro
             app.UseStaticFiles();
 
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
-            app.UseAuthentication();
-
+            app.UseCookiePolicy();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllerRoute(
                     name: "default",
-                    pattern: "{controller=Usuario}/{action=IndexLogin}");
+                    pattern: "{controller=Usuario}/{action=IndexUsuario}");
             });
 
         }

@@ -1,16 +1,15 @@
-﻿
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Newtonsoft.Json;
+﻿using Microsoft.AspNetCore.Mvc.Rendering;
+using SistemaDeAnimaisMVC.Models;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace SistemaDeAnimaisMVC.Models
 {
-    public class PetModel
+    public class PetViewModel
     {
-        public int Id { get; set; }
+        public int? Id { get; set; }
 
-        [Required(ErrorMessage ="Informe o nome")]
+        [Required(ErrorMessage = "Informe o nome")]
         public string Nome { get; set; }
 
         [Required(ErrorMessage = "Informe a Rança")]
@@ -24,6 +23,6 @@ namespace SistemaDeAnimaisMVC.Models
 
         [Required(ErrorMessage = "Informe o Dono do Pet")]
         public int? UsuarioId { get; set; }
-        public UsuarioModel Usuario { get; set; }
+        public virtual UsuarioModel UsuarioModel { get; set; }
     }
 }

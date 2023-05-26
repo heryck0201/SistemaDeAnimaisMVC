@@ -1,16 +1,19 @@
-﻿@model PetModel
+﻿
 @{
-    ViewData["Title"] = "Cadastro do Pet";
+    ViewData["Title"] = "Cadastro de Pets";
+    List<UsuarioModel> userList = (List<UsuarioModel>)ViewBag.UserList;
+    //PetViewModel userList = (List<PetModel>)ViewBag.UserList;
 }
+@model SistemaDeAnimaisMVC.Models.PetModel
 
 <div class="text-center">
-    <h1 class="display-4">Cadastrar Contato</h1>
+    <h1 class="display-4">Cadastrar o pet</h1>
 </div>
 
-<form asp-controller="Pet" asp-action="Criar" method="post">
+<form id="formCriarPet" asp-controller="Pet" asp-action="CriarPet" method="post">
     <div class="form-group">
         <label for="Nome">Diga o nome do pet </label>
-        <input type="text" asp-for="Nome" class="form-control" placeholder="Qual o nome do pet?">
+        <input type="text" asp-for="Nome" class="form-control" placeholder="O nome do pet">
         @Html.ValidationMessageFor(x => x.Nome)
     </div>
 
@@ -27,18 +30,83 @@
     </div>
 
     <div class="form-group">
-        <label for="porte">Porte</label>
-        <input type="text" asp-for="Porte" class="form-control" placeholder="Digite a cidade">
-        @Html.ValidationMessageFor(x => x.Porte)
+        <label for="porte">Porte:</label>
+        <select class="form-control" id="porte" name="porte">
+            <option value="Pequeno">Pequeno</option>
+            <option value="Médio">Médio</option>
+            <option value="Grande">Grande</option>
+            @Html.ValidationMessageFor(x => x.Porte)
+        </select>
     </div>
 
     <div class="form-group">
-        <label for="UsuarioId">Dono</label>
-        <input type="text" asp-for="UsuarioId" class="form-control" placeholder="Digite o nome do dono">
-        @Html.ValidationMessageFor(x => x.UsuarioId)
+        <label for="cor">Dono do Pet</label>
+        <select name="UsuarioId" asp-for="UsuarioId" class="form-control input-group-lg" asp-items="@userList.Select(x=> new SelectListItem {Text = x.Nome,Value = x.Id.ToString()})"></select>
+        <span asp-validation-for="UsuarioId" class="text-danger"></span>
     </div>
 
     <button type="submit" class="btn btn-primary btn-block">Adicionar</button>
-    <a class="btn btn-secondary btn-block" asp-controller="Pet" asp-action="Index" role="button">Voltar</a>
+    <a class="btn btn-secondary btn-block" asp-controller="Pet" asp-action="IndexPet" role="button">Voltar</a>
 </form>
 
+@*<script>
+    $(document).ready(function () {
+        $("#formCriarPet").submit(function (e) {
+            e.preventDefault();
+
+            var form = $(this);
+            var url = form.attr("action");
+
+            $.ajax({
+                type: "POST",
+                url: "Pet/CriarPet",
+                data: form.serialize(),
+                success: function (data) {
+                    alert("Pet criado com sucesso!");
+                    window.location.href = "Url.Action("IndexPet", "Pet")";
+                },
+                error: function (xhr, status, error) {
+                    var response = xhr.responseText;
+                    alert(response);
+                }
+            });
+        });
+    });
+    $(document).ready(function () {
+        $.ajax({
+            url: "Pet/CriarPet",
+            type: "Get",
+            dataType: "json",
+            success: function (data) {
+                $.each(data, function (index, usuario) {
+                    $("#UsuarioId").append("<option value='" + usuario.Id + "'>"
+                        + usuario.Nome + " " + usuario.Sobrenome + "</option>");
+                });
+            },
+            error: function (xhr, status, erros) {
+                console.log("Ocorreu um erro ao obter a lista de usuários: " + xhr.responseText);
+            }
+        });
+    });
+    $("#ModelosAutoCompleted").autocomplete({
+        source: function (request, response) {
+            $.ajax({
+                url: "Pet/Criar",
+                type: "POST",
+                dataType: "json",
+                data: { Prefix: request.term },
+                success: function (data) {
+                    response($.map(data, function (item) {
+                        return { label: item.modelo, value: item.modelo, id: item.id };
+                    }));
+                }
+            });
+        },
+        select: function (event, ui) {
+            ui.item ? $("#usuarioId").val(ui.item.id) : $("#usuarioId").val(null);
+        },
+        messages: {
+            noResults: "", results: ""
+        }
+    });
+</script>*@
